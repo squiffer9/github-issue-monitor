@@ -19,6 +19,8 @@ go.work
 .terraform/
 .terraform.lock.hcl
 *.tfplan
+terraform/websocket/
+terraform/webhook/
 
 # MacOS
 .DS_Store
