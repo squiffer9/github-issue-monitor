@@ -36,6 +36,7 @@ type Connection struct {
 	ConnectedAt  string `dynamodbav:"connected_at"`
 }
 
+// verifySignature verifies the GitHub webhook signature.
 func verifySignature(signature string, body, secret []byte) bool {
 	if !strings.HasPrefix(signature, "sha256=") {
 		return false
@@ -49,9 +50,11 @@ func verifySignature(signature string, body, secret []byte) bool {
 		return false
 	}
 
+	// Compare the expected and actual MAC values
 	return hmac.Equal(actualMAC, expectedMAC)
 }
 
+// getAllConnections retrieves all connection IDs from the DynamoDB table.
 func getAllConnections(ctx context.Context, tableName string) ([]Connection, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -76,8 +79,9 @@ func getAllConnections(ctx context.Context, tableName string) ([]Connection, err
 	return connections, nil
 }
 
+// handleWebhookEvent handles the incoming GitHub webhook event.
 func handleWebhookEvent(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// GitHub webhookシグネチャの検証
+	// Verify the GitHub webhook signature
 	secret := os.Getenv("GITHUB_WEBHOOK_SECRET")
 	signature := request.Headers["X-Hub-Signature-256"]
 	if !verifySignature(signature, []byte(request.Body), []byte(secret)) {
@@ -136,6 +140,7 @@ func handleWebhookEvent(ctx context.Context, request events.APIGatewayProxyReque
 	}, nil
 }
 
+// handleRequest handles the incoming requests.
 func handleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return handleWebhookEvent(ctx, request)
 }

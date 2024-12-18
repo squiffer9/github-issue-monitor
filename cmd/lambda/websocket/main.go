@@ -18,6 +18,7 @@ type Connection struct {
 	ConnectedAt  string `dynamodbav:"connected_at"`
 }
 
+// saveConnection saves the connection ID to the DynamoDB table.
 func saveConnection(ctx context.Context, tableName, connectionID string) error {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -43,6 +44,7 @@ func saveConnection(ctx context.Context, tableName, connectionID string) error {
 	return err
 }
 
+// deleteConnection deletes the connection ID from the DynamoDB table.
 func deleteConnection(ctx context.Context, tableName, connectionID string) error {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -65,6 +67,7 @@ func deleteConnection(ctx context.Context, tableName, connectionID string) error
 	return err
 }
 
+// handleWebSocketEvent handles the WebSocket events.
 func handleWebSocketEvent(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	connectionID := request.RequestContext.ConnectionID
 	tableName := os.Getenv("DYNAMODB_TABLE")
@@ -94,6 +97,7 @@ func handleWebSocketEvent(ctx context.Context, request events.APIGatewayWebsocke
 	}, nil
 }
 
+// handleRequest handles the incoming requests.
 func handleRequest(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return handleWebSocketEvent(ctx, request)
 }
