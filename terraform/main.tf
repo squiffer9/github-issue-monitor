@@ -14,7 +14,7 @@ provider "aws" {
   http_proxy = ""
   retry_mode = "standard"
   skip_requesting_account_id = false
-  max_retries = 5
+  max_retries = 10
 
   default_tags {
     tags = {
@@ -26,12 +26,21 @@ provider "aws" {
 }
 
 # Archive Files for Lambda - moved to top
+resource "null_resource" "lambda_build" {
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command = "cd ${path.module} && make build"
+  }
+}
+
 data "archive_file" "websocket_lambda" {
   type        = "zip"
   source_file = "${path.module}/websocket/bootstrap"
   output_path = "${path.module}/websocket.zip"
-
-  depends_on = [data.local_file.websocket_bootstrap]
+  depends_on  = [null_resource.lambda_build]
 }
 
 data "archive_file" "webhook_lambda" {
@@ -53,7 +62,7 @@ data "local_file" "webhook_bootstrap" {
 
 # API Gateway CloudWatch role
 resource "aws_iam_role" "apigateway_cloudwatch" {
-  name = "api-gateway-cloudwatch-role"
+  name = "github-issue-monitor-api-gateway-cloudwatch-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -93,10 +102,15 @@ resource "aws_iam_role_policy" "apigateway_cloudwatch" {
 # Settings for API Gateway at the account level
 resource "aws_api_gateway_account" "main" {
   cloudwatch_role_arn = aws_iam_role.apigateway_cloudwatch.arn
+
+  depends_on = [
+    aws_iam_role.apigateway_cloudwatch,
+    aws_iam_role_policy.apigateway_cloudwatch
+  ]
 }
 # Budget alert
 resource "aws_budgets_budget" "cost_control" {
-  name         = "portfolio-monthly-budget"
+  name         = "github-issue-monitor-monthly-budget"
   budget_type  = "COST"
   limit_amount = "5"
   limit_unit   = "USD"
@@ -326,6 +340,6 @@ resource "aws_cloudwatch_log_group" "webhook" {
 
 # CloudWatch Log Groups with 3-day retention
 resource "aws_cloudwatch_log_group" "api_gateway" {
-  name              = "/aws/lambda/${aws_apigatewayv2_api.websocket.name}"
+  name              = "/aws/apigateway/${aws_apigatewayv2_api.websocket.name}"
   retention_in_days = 3
 }
