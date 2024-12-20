@@ -1,4 +1,12 @@
 terraform {
+  backend "s3" {
+    bucket         = "github-issue-monitor-tfstate"
+    key            = "terraform.tfstate"
+    region         = "ap-northeast-1"
+    dynamodb_table = "github-issue-monitor-tfstate-lock"
+    encrypt        = true
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
