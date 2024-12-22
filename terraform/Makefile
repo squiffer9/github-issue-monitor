@@ -12,11 +12,11 @@ clean:
 	@rm -f terraform.tfstate*
 	@rm -rf .terraform*
 
-build:
+build: clean
 	@GOOS=linux GOARCH=arm64 go build -o websocket/bootstrap ../cmd/lambda/websocket
 	@GOOS=linux GOARCH=arm64 go build -o webhook/bootstrap ../cmd/lambda/webhook
-	@zip websocket.zip websocket/bootstrap
-	@zip webhook.zip webhook/bootstrap
+	@zip -j websocket.zip websocket/bootstrap
+	@zip -j webhook.zip webhook/bootstrap
 
 verify:
 	@if [ ! -f "websocket/bootstrap" ]; then \
