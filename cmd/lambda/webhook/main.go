@@ -38,17 +38,24 @@ type Connection struct {
 
 // verifySignature verifies the GitHub webhook signature.
 func verifySignature(signature string, body, secret []byte) bool {
+	// Check if the signature is prefixed with "sha256="
 	if !strings.HasPrefix(signature, "sha256=") {
+		return false
+	}
+
+	// Delete the "sha256=" prefix from the verifySignature
+	signature = strings.TrimPrefix(signature, "sha256=")
+
+	// Decode the signature from hex to bytes
+	actualMAC, err := hex.DecodeString(signature)
+	if err != nil {
+		log.Printf("Error decoding signature: %v", err)
 		return false
 	}
 
 	mac := hmac.New(sha256.New, secret)
 	mac.Write(body)
 	expectedMAC := mac.Sum(nil)
-	actualMAC, err := hex.DecodeString(signature[7:])
-	if err != nil {
-		return false
-	}
 
 	// Compare the expected and actual MAC values
 	return hmac.Equal(actualMAC, expectedMAC)
@@ -81,9 +88,18 @@ func getAllConnections(ctx context.Context, tableName string) ([]Connection, err
 
 // handleWebhookEvent handles the incoming GitHub webhook event.
 func handleWebhookEvent(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+
+	log.Printf("Request received: Method=%s, Path=%s", request.HTTPMethod, request.Path)
+	log.Printf("Headers: %+v", request.Headers)
+	log.Printf("Body length: %d", len(request.Body))
+
 	// Verify the GitHub webhook signature
 	secret := os.Getenv("GITHUB_WEBHOOK_SECRET")
+	log.Printf("Secret: %s", secret) // ON PRODUCTION, DO NOT LOG SECRET
+
 	signature := request.Headers["X-Hub-Signature-256"]
+	log.Printf("Signature: %s", signature)
+
 	if !verifySignature(signature, []byte(request.Body), []byte(secret)) {
 		return events.APIGatewayProxyResponse{StatusCode: 401, Body: "Invalid signature"}, nil
 	}
